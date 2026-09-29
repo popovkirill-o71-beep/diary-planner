@@ -1,29 +1,24 @@
-# bot.py — главный файл бота для ведения дневника
-# Этот файл запускает бота и обрабатывает команду /start
+# bot.py — главный файл бота
+import asyncio
+from aiogram import Bot, Dispatcher
+from aiogram.filters import Command
 
-import asyncio  # библиотека для асинхронной работы (нужна для aiogram)
-from aiogram import Bot, Dispatcher  # Bot — сам бот, Dispatcher — обрабатывает сообщения
-from aiogram.filters import Command  # Command — фильтр для команд вроде /start
-
-# Создаём бота с токеном из config.py
 from config import BOT_TOKEN
-bot = Bot(token=BOT_TOKEN)
+from evening import router as evening_router  # Импортируем роутер из evening.py
 
-# Создаём диспетчер — он решает, какой функции передать сообщение
+bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-# Эта функция срабатывает, когда пользователь пишет /start
-@dp.message(Command("start"))  # декоратор: "вызови эту функцию на команду /start"
-async def cmd_start(message):  # message — объект с информацией о сообщении
-    """Обработчик команды /start. Отвечает приветствием."""
-    await message.answer("Привет! Я бот для ведения дневника. 📓")
+# Подключаем роутер с вечерним опросом к диспетчеру
+dp.include_router(evening_router)
 
-# Главная функция — запускает бота
+@dp.message(Command("start"))
+async def cmd_start(message):
+    await message.answer("Привет! Я бот для ведения дневника. \nНапиши /evening, чтобы начать.")
+
 async def main():
-    """Запускает бота в режиме polling (он сам проверяет новые сообщения)."""
     print("Бот запущен...")
-    await dp.start_polling(bot)  # бот начинает слушать сообщения
+    await dp.start_polling(bot)
 
-# Точка входа — отсюда начинается выполнение программы
 if __name__ == "__main__":
-    asyncio.run(main())  # запускаем асинхронную функцию main()
+    asyncio.run(main())
