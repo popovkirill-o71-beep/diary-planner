@@ -97,6 +97,31 @@ def mark_task_done(day: date, task_index: int) -> tuple[bool, str]:
     done.append(task)
     entry["tasks_done"] = done
     return save_entry(day, entry), f"✅ Отметил выполненной: {task}"
+def delete_task(day: date, task_index: int) -> tuple[bool, str]:
+    """Удалить задачу по индексу (с 1).
+    
+    Возвращает (успех: bool, сообщение: str).
+    """
+    entry = get_entry(day)
+    if entry is None:
+        return False, "На этот день ещё нет записей"
+    
+    tasks = entry.get("tasks_planned", [])
+    done = entry.get("tasks_done", [])
+    
+    # Проверка индекса
+    if task_index < 1 or task_index > len(tasks):
+        return False, f"Нет задачи с номером {task_index}. Всего задач: {len(tasks)}"
+    
+    task = tasks.pop(task_index - 1)  # удаляем из списка
+    
+    # Если задача была в выполненных — убираем и оттуда
+    if task in done:
+        done.remove(task)
+        entry["tasks_done"] = done
+    
+    entry["tasks_planned"] = tasks
+    return save_entry(day, entry), f"🗑️ Удалил: {task}"
 
 
 def add_task(day: date, task: str) -> bool:
