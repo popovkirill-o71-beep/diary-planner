@@ -1,35 +1,58 @@
-# morning.py — логика утреннего показа задач
+# morning.py — утренняя сводка
 from aiogram import Router
 from aiogram.types import Message
 from aiogram.filters import Command
 
-from storage import get_yesterday_entry  # импортируем функцию из storage.py
+from storage import get_entry, get_tasks_for_day, date
+from datetime import timedelta
 
 router = Router()
 
+# Мотивирующие цитаты (выбираем случайно по дню)
+QUOTES = [
+    "«Начни делать то, что нужно. Потом делай то, что возможно. И вдруг ты делаешь невозможное.» — Франциск Ассизский",
+    "«Маленькие шаги каждый день приводят к большим результатам.»",
+    "«Лучшее время начать — сейчас.»",
+    "«Дисциплина — это мост между целями и достижениями.»"
+]
+
+
 @router.message(Command("morning"))
-async def show_yesterday(message: Message):
-    """Обработчик команды /morning. Показывает задачу на сегодня из вчерашнего дневника."""
-    user_id = message.from_user.id
+async def show_morning(message: Message):
+    """Показать планы на сегодня и вчерашний итог."""
+    today = date.today()
+    yesterday = today - timedelta(days=1)
     
-    # Пытаемся получить вчерашнюю запись
-    entry = get_yesterday_entry(user_id)
+    # Получаем задачи на сегодня (их мог поставить пользователь вчера вечером)
+    tasks_today = get_tasks_for_day(today)
     
-    # КРАЕВОЙ СЛУЧАЙ: если вчера ты не вел дневник
-    if entry is None:
-        await message.answer("🤷 Вчера ты не вел дневник, поэтому задачи на сегодня нет. Напиши /evening, чтобы начать!")
-        return
+    # Если задач на сегодня нет — берём планы на завтра из вчерашней записи
+    if not tasks_today:
+        yesterday_entry = get_entry(yesterday)
+        if yesterday_entry:
+            tasks_today = yesterday_entry.get("plans_for_tomorrow", [])
     
-    # Если запись есть, достаем ответы
-    answers = entry["answers"]
+    # Формируем сообщение
+    lines = ["☀️ Доброе утро!\n"]
     
-    # Третий ответ (индекс 2) — это задача на сегодня
-    task = answers[2]
+    if tasks_today:
+        lines.append("📋 Твои задачи на сегодня:")
+        for i, task in enumerate(tasks_today, 1):
+            lines.append(f"  {i}. {task}")
+    else:
+        lines.append("📋 На сегодня задач пока нет. Добавь через /add <задача>")
     
-    # Отправляем пользователю
-    await message.answer(
-        f"☀️ Доброе утро!\n\n"
-        f"Вот твоя главная задача на сегодня (из вчерашнего дневника):\n"
-        f"🎯 {task}\n\n"
-        f"Удачи! А вечером напиши /evening, чтобы подвести итоги."
-    )
+    # Вчерашний итог
+    yesterday_entry = get_entry(yesterday)
+    if yesterday_entry:
+        difficulties = yesterday_entry.get("difficulties", "")
+        done = yesterday_entry.get("tasks_done", [])
+        lines.append(f"\n📝 Вчера ты сделал: {len(done)} задач")
+        if difficulties:
+            lines.append(f"🌧️ Сложности: {difficulties}")
+    
+    # Цитата дня (выбираем по номеру дня в году, чтобы не повторялась)
+    quote = QUOTES[today.timetuple().tm_yday % len(QUOTES)]
+    lines.append(f"\n💬 {quote}")
+    
+    await message.answer("\n".join(lines))

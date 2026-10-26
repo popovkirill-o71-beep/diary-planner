@@ -6,6 +6,8 @@ from aiogram.filters import Command
 from config import BOT_TOKEN
 from evening import router as evening_router
 from morning import router as morning_router  # <-- ДОБАВИЛИ ЭТУ СТРОКУ
+from tasks import router as tasks_router
+from weekly import router as weekly_router
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -13,6 +15,8 @@ dp = Dispatcher()
 # Подключаем оба роутера
 dp.include_router(evening_router)
 dp.include_router(morning_router)  # <-- ДОБАВИЛИ ЭТУ СТРОКУ
+dp.include_router(tasks_router)
+dp.include_router(weekly_router)
 
 @dp.message(Command("start"))
 async def cmd_start(message):
